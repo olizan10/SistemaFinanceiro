@@ -18,15 +18,18 @@ export default function Home() {
 
           <div className="flex gap-6 justify-center flex-wrap">
             <Link
-              href="/dashboard"
+              href="/register"
               className="btn bg-gradient-to-r from-purple-600 to-pink-600 text-white px-10 py-5 rounded-2xl font-bold text-xl hover:scale-110 transition-transform shadow-2xl"
             >
-              Acessar Dashboard 🚀
+              Começar Agora 🚀
             </Link>
 
-            <button className="btn glass px-10 py-5 rounded-2xl font-bold text-xl hover:scale-105 transition-transform">
-              Como Funciona ℹ️
-            </button>
+            <Link
+              href="/login"
+              className="btn glass px-10 py-5 rounded-2xl font-bold text-xl hover:scale-105 transition-transform"
+            >
+              Fazer Login
+            </Link>
           </div>
         </div>
 

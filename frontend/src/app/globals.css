@@ -1,36 +1,41 @@
-@import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-:root {
-  --background: #0a0a0f;
-  --foreground: #f0f0f5;
-  
-  /* Financial Health Colors */
-  --critical: #8B0000;          /* Vermelho escuro - Crítico */
-  --concerning: #FF4500;        /* Laranja - Preocupante */
-  --attention: #FFD700;         /* Amarelo - Atenção */
-  --controlled: #90EE90;        /* Verde claro - Controlado */
-  --healthy: #228B22;           /* Verde forte - Saudável */
-  --saving: #87CEEB;            /* Azul claro - Poupando */
-  --excellent: #0000CD;         /* Azul forte - Excelente */
-  
-  /* UI Colors */
-  --card-bg: rgba(17, 17, 27, 0.8);
-  --card-border: rgba(255, 255, 255, 0.1);
-  --hover-bg: rgba(255, 255, 255, 0.05);
-  
-  /* Gradients */
-  --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --gradient-success: linear-gradient(135deg, #0ba360 0%, #3cba92 100%);
-  --gradient-danger: linear-gradient(135deg, #ff0844 0%, #ffb199 100%);
-  --gradient-warning: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: 'Inter', var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+@layer base {
+  :root {
+    --background: #0a0a0f;
+    --foreground: #f0f0f5;
+
+    /* Financial Health Colors */
+    --critical: #8B0000;
+    /* Vermelho escuro - Crítico */
+    --concerning: #FF4500;
+    /* Laranja - Preocupante */
+    --attention: #FFD700;
+    /* Amarelo - Atenção */
+    --controlled: #90EE90;
+    /* Verde claro - Controlado */
+    --healthy: #228B22;
+    /* Verde forte - Saudável */
+    --saving: #87CEEB;
+    /* Azul claro - Poupando */
+    --excellent: #0000CD;
+    /* Azul forte - Excelente */
+
+    /* UI Colors */
+    --card-bg: rgba(17, 17, 27, 0.8);
+    --card-border: rgba(255, 255, 255, 0.1);
+    --hover-bg: rgba(255, 255, 255, 0.05);
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --gradient-success: linear-gradient(135deg, #0ba360 0%, #3cba92 100%);
+    --gradient-danger: linear-gradient(135deg, #ff0844 0%, #ffb199 100%);
+    --gradient-warning: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  }
 }
 
 * {
@@ -77,6 +82,7 @@ html {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -139,6 +145,11 @@ html {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
