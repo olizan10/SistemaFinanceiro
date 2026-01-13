@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AIAssistant from '@/components/AIAssistant';
+import ThemeToggle from '@/components/ThemeToggle';
 
 interface FinancialHealth {
     status: string;
@@ -152,12 +153,15 @@ export default function DashboardPage() {
                             Bem-vindo, {user?.name}! 👋
                         </p>
                     </div>
-                    <button
-                        onClick={handleLogout}
-                        className="btn glass px-6 py-3 rounded-xl hover:bg-red-500/20 transition-colors"
-                    >
-                        Sair 🚪
-                    </button>
+                    <div className="flex items-center gap-4">
+                        <ThemeToggle />
+                        <button
+                            onClick={handleLogout}
+                            className="btn glass px-6 py-3 rounded-xl hover:bg-red-500/20 transition-colors"
+                        >
+                            Sair 🚪
+                        </button>
+                    </div>
                 </div>
             </div>
 
