@@ -389,8 +389,8 @@ export default function AIAssistant() {
                             >
                                 <div
                                     className={`max-w-[80%] p-3 rounded-2xl ${msg.role === 'user'
-                                            ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
-                                            : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-800 dark:text-gray-100'
+                                        ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
+                                        : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-800 dark:text-gray-100'
                                         }`}
                                 >
                                     {msg.image && (
@@ -452,18 +452,20 @@ export default function AIAssistant() {
 
                     {/* Input */}
                     <div className="p-4 border-t border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900/50">
-                        <div className="flex gap-2 mb-2">
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                onChange={handleFileUpload}
-                                accept="image/*"
-                                className="hidden"
-                            />
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileUpload}
+                            accept="image/*"
+                            className="hidden"
+                        />
+
+                        <div className="flex gap-2 items-center">
+                            {/* Botões de ação */}
                             <button
                                 onClick={() => fileInputRef.current?.click()}
                                 disabled={loading}
-                                className="px-3 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl transition-colors disabled:opacity-50 text-sm"
+                                className="p-2 text-xl text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50"
                                 title="Enviar foto"
                             >
                                 📷
@@ -471,13 +473,13 @@ export default function AIAssistant() {
                             <button
                                 onClick={isRecording ? stopRecording : startRecording}
                                 disabled={loading}
-                                className={`px-3 py-2 ${isRecording ? 'bg-red-500 text-white' : 'bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-200'} hover:bg-gray-300 dark:hover:bg-gray-700 rounded-xl transition-colors disabled:opacity-50 text-sm`}
+                                className={`p-2 text-xl ${isRecording ? 'text-red-500 animate-pulse' : 'text-gray-600 dark:text-gray-400'} hover:text-purple-600 dark:hover:text-purple-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50`}
                                 title={isRecording ? 'Parar gravação' : 'Gravar áudio'}
                             >
                                 {isRecording ? '⏹️' : '🎤'}
                             </button>
-                        </div>
-                        <div className="flex gap-2">
+
+                            {/* Input de texto */}
                             <input
                                 type="text"
                                 value={input}
@@ -487,12 +489,14 @@ export default function AIAssistant() {
                                 disabled={loading}
                                 className="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-800 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 rounded-xl focus:outline-none focus:border-purple-500 transition-colors disabled:opacity-50"
                             />
+
+                            {/* Botão enviar */}
                             <button
                                 onClick={handleSend}
                                 disabled={loading || (!input.trim() && !selectedImage)}
-                                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="px-5 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                Enviar
+                                ➤
                             </button>
                         </div>
                     </div>
