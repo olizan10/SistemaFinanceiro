@@ -86,6 +86,7 @@ export default function DashboardPage() {
 
     const getStatusLabel = (status: string): string => {
         const labels: Record<string, string> = {
+            neutral: 'Comece Agora',
             critical: 'Crítico',
             concerning: 'Preocupante',
             attention: 'Atenção',
@@ -94,11 +95,12 @@ export default function DashboardPage() {
             saving: 'Poupando',
             excellent: 'Excelente'
         };
-        return labels[status] || 'Saudável';
+        return labels[status] || 'Comece Agora';
     };
 
     const getStatusMessage = (status: string, debtRatio: number): string => {
         const messages: Record<string, string> = {
+            neutral: 'Bem-vindo! Comece adicionando suas primeiras transações para ter uma análise completa.',
             critical: `Você está com ${debtRatio}% da renda comprometida com dívidas. Ação urgente necessária!`,
             concerning: `${debtRatio}% da renda está comprometida. É hora de reduzir as dívidas.`,
             attention: `${debtRatio}% da renda comprometida. Mantenha o controle para não piorar.`,
@@ -129,6 +131,7 @@ export default function DashboardPage() {
 
     const getColorClass = (color: string) => {
         const colors: Record<string, string> = {
+            neutral: 'from-indigo-500 to-purple-600',
             critical: 'from-red-900 to-red-700',
             concerning: 'from-orange-900 to-orange-700',
             attention: 'from-yellow-900 to-yellow-700',
@@ -137,7 +140,7 @@ export default function DashboardPage() {
             saving: 'from-blue-900 to-blue-700',
             excellent: 'from-blue-800 to-blue-600'
         };
-        return colors[color] || 'from-gray-900 to-gray-700';
+        return colors[color] || 'from-indigo-500 to-purple-600';
     };
 
     return (

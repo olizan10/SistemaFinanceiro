@@ -138,7 +138,23 @@ Se não conseguir identificar algum campo, use null.`;
             const totalDebt = user.loans.reduce((sum, l) => sum + l.remainingAmount, 0) +
                 user.creditCards.reduce((sum, c) => sum + c.currentBalance, 0);
 
-            const debtRatio = totalIncome > 0 ? (totalDebt / totalIncome) * 100 : 100;
+            // Se não há dados ainda, retornar status neutro
+            if (totalIncome === 0 && totalExpenses === 0 && totalDebt === 0) {
+                const suggestions = this.getDefaultSuggestions('neutral', 0);
+                return {
+                    color: 'neutral',
+                    status: 'neutral',
+                    healthScore: 0,
+                    debtRatio: '0.0',
+                    totalIncome,
+                    totalExpenses,
+                    totalDebt,
+                    suggestions
+                };
+            }
+
+            // Calcular proporção de dívidas (apenas se há renda)
+            const debtRatio = totalIncome > 0 ? (totalDebt / totalIncome) * 100 : (totalDebt > 0 ? 100 : 0);
 
             // Determinar cor e status
             let color = '';
@@ -166,7 +182,7 @@ Se não conseguir identificar algum campo, use null.`;
                 status = 'healthy';
                 healthScore = 5;
             } else {
-                const savingsRatio = ((totalIncome - totalExpenses) / totalIncome) * 100;
+                const savingsRatio = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
                 if (savingsRatio > 20) {
                     color = '#0000CD'; // Azul forte
                     status = 'excellent';
@@ -228,6 +244,11 @@ Forneça 3 sugestões práticas e específicas para melhorar a saúde financeira
      */
     private getDefaultSuggestions(status: string, debtRatio: number): string[] {
         const suggestions: { [key: string]: string[] } = {
+            neutral: [
+                'Comece adicionando suas primeiras transações usando o assistente IA 🤖',
+                'Registre suas contas bancárias e cartões de crédito para ter uma visão completa',
+                'Use o chat com a IA ou tire fotos de comprovantes para adicionar gastos rapidamente'
+            ],
             critical: [
                 'Considere renegociar suas dívidas com taxas de juros menores',
                 'Priorize o pagamento das dívidas com maiores juros primeiro',
@@ -265,7 +286,7 @@ Forneça 3 sugestões práticas e específicas para melhorar a saúde financeira
             ]
         };
 
-        return suggestions[status] || suggestions['healthy'];
+        return suggestions[status] || suggestions['neutral'];
     }
 
     /**
