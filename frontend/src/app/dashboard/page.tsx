@@ -232,8 +232,8 @@ export default function DashboardPage() {
                         <div className="space-y-3">
                             {health.suggestions.map((suggestion, idx) => (
                                 <div key={idx} className="flex gap-3 items-start">
-                                    <span className="text-purple-400 mt-1">•</span>
-                                    <p className="text-gray-300">{suggestion}</p>
+                                    <span className="text-purple-500 mt-1">•</span>
+                                    <p className="text-gray-700 dark:text-gray-300">{suggestion}</p>
                                 </div>
                             ))}
                         </div>
