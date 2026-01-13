@@ -152,7 +152,7 @@ export default function DashboardPage() {
                         <h1 className="text-4xl font-bold gradient-text mb-2">
                             Dashboard Financeiro
                         </h1>
-                        <p className="text-gray-400">
+                        <p className="text-gray-600 dark:text-gray-400">
                             Bem-vindo, {user?.name}! 👋
                         </p>
                     </div>
@@ -225,7 +225,7 @@ export default function DashboardPage() {
                 {/* Sugestões da IA */}
                 {health && health.suggestions.length > 0 && (
                     <div className="glass rounded-3xl p-8 fade-in-up">
-                        <h3 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                        <h3 className="text-2xl font-bold mb-4 flex items-center gap-2 text-gray-900 dark:text-white">
                             <span>💡</span>
                             Sugestões da IA
                         </h3>
