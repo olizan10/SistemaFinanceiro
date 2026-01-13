@@ -182,8 +182,12 @@ Se não conseguir identificar algum campo, use null.`;
                 }
             }
 
-            // Gerar sugestões com IA
-            const context = `Situação financeira:
+            // Gerar sugestões com IA (ou usar padrão se IA não configurada)
+            let suggestions: string[] = [];
+
+            if (geminiModel) {
+                try {
+                    const context = `Situação financeira:
 - Renda mensal: R$ ${totalIncome.toFixed(2)}
 - Despesas mensais: R$ ${totalExpenses.toFixed(2)}
 - Dívidas totais: R$ ${totalDebt.toFixed(2)}
@@ -192,8 +196,16 @@ Se não conseguir identificar algum campo, use null.`;
 
 Forneça 3 sugestões práticas e específicas para melhorar a saúde financeira.`;
 
-            const result = await geminiModel.generateContent(context);
-            const suggestions = await result.response.text();
+                    const result = await geminiModel.generateContent(context);
+                    const suggestionsText = await result.response.text();
+                    suggestions = suggestionsText.split('\n').filter(s => s.trim().length > 0);
+                } catch (error) {
+                    console.warn('Could not generate AI suggestions, using defaults');
+                    suggestions = this.getDefaultSuggestions(status, debtRatio);
+                }
+            } else {
+                suggestions = this.getDefaultSuggestions(status, debtRatio);
+            }
 
             return {
                 color,
@@ -203,12 +215,57 @@ Forneça 3 sugestões práticas e específicas para melhorar a saúde financeira
                 totalIncome,
                 totalExpenses,
                 totalDebt,
-                suggestions: suggestions.split('\n').filter(s => s.trim().length > 0)
+                suggestions
             };
         } catch (error: any) {
             console.error('Financial Health Analysis Error:', error);
             throw new Error(`Erro ao analisar saúde financeira: ${error.message}`);
         }
+    }
+
+    /**
+     * Retorna sugestões padrão baseadas no status financeiro
+     */
+    private getDefaultSuggestions(status: string, debtRatio: number): string[] {
+        const suggestions: { [key: string]: string[] } = {
+            critical: [
+                'Considere renegociar suas dívidas com taxas de juros menores',
+                'Priorize o pagamento das dívidas com maiores juros primeiro',
+                'Busque fontes de renda extra para acelerar o pagamento das dívidas'
+            ],
+            concerning: [
+                'Estabeleça um orçamento mensal rigoroso para controlar gastos',
+                'Evite novas dívidas até reduzir o comprometimento atual',
+                'Considere vender itens que não usa para quitar dívidas'
+            ],
+            attention: [
+                'Mantenha o controle dos gastos e evite compras desnecessárias',
+                'Crie uma reserva de emergência equivalente a 3 meses de despesas',
+                'Revise assinaturas e serviços que podem ser cancelados'
+            ],
+            controlled: [
+                'Continue controlando seus gastos mensalmente',
+                'Aumente sua reserva de emergência para 6 meses',
+                'Considere investir em sua educação financeira'
+            ],
+            healthy: [
+                'Comece a investir para fazer seu dinheiro crescer',
+                'Mantenha sua disciplina financeira',
+                'Estabeleça metas financeiras de longo prazo'
+            ],
+            saving: [
+                'Diversifique seus investimentos',
+                'Continue economizando e investindo regularmente',
+                'Considere investimentos de médio e longo prazo'
+            ],
+            excellent: [
+                'Você está indo muito bem! Continue assim',
+                'Considere investimentos mais agressivos para maximizar retornos',
+                'Ajude outras pessoas compartilhando seu conhecimento financeiro'
+            ]
+        };
+
+        return suggestions[status] || suggestions['healthy'];
     }
 
     /**

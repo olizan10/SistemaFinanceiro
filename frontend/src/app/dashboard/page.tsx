@@ -58,12 +58,55 @@ export default function DashboardPage() {
             }
 
             const data = await response.json();
-            setHealth(data.financialHealth);
+
+            // Transformar dados do backend para o formato esperado
+            const transformedHealth: FinancialHealth = {
+                status: getStatusLabel(data.financialHealth.status),
+                color: data.financialHealth.status,
+                score: data.financialHealth.healthScore,
+                message: getStatusMessage(data.financialHealth.status, data.financialHealth.debtRatio),
+                suggestions: data.financialHealth.suggestions || [],
+                metrics: {
+                    income: data.financialHealth.totalIncome || 0,
+                    expenses: data.financialHealth.totalExpenses || 0,
+                    debts: data.financialHealth.totalDebt || 0,
+                    available: (data.financialHealth.totalIncome || 0) - (data.financialHealth.totalExpenses || 0),
+                    debtRatio: parseFloat(data.financialHealth.debtRatio) || 0
+                }
+            };
+
+            setHealth(transformedHealth);
         } catch (error) {
             console.error('Erro ao carregar dashboard:', error);
         } finally {
             setLoading(false);
         }
+    };
+
+    const getStatusLabel = (status: string): string => {
+        const labels: Record<string, string> = {
+            critical: 'Crítico',
+            concerning: 'Preocupante',
+            attention: 'Atenção',
+            controlled: 'Controlado',
+            healthy: 'Saudável',
+            saving: 'Poupando',
+            excellent: 'Excelente'
+        };
+        return labels[status] || 'Saudável';
+    };
+
+    const getStatusMessage = (status: string, debtRatio: number): string => {
+        const messages: Record<string, string> = {
+            critical: `Você está com ${debtRatio}% da renda comprometida com dívidas. Ação urgente necessária!`,
+            concerning: `${debtRatio}% da renda está comprometida. É hora de reduzir as dívidas.`,
+            attention: `${debtRatio}% da renda comprometida. Mantenha o controle para não piorar.`,
+            controlled: 'Suas finanças estão sob controle. Continue assim!',
+            healthy: 'Parabéns! Sua saúde financeira está ótima.',
+            saving: 'Excelente! Você está conseguindo poupar regularmente.',
+            excellent: 'Incrível! Suas finanças estão exemplares.'
+        };
+        return messages[status] || 'Comece a organizar suas finanças agora!';
     };
 
     const handleLogout = () => {
