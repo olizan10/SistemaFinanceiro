@@ -10,11 +10,11 @@ const genAI = process.env.GEMINI_API_KEY
     : null;
 
 export const geminiModel = genAI?.getGenerativeModel({
-    model: 'gemini-pro'
+    model: 'gemini-2.5-flash'
 }) || null;
 
 export const geminiVisionModel = genAI?.getGenerativeModel({
-    model: 'gemini-pro-vision'
+    model: 'gemini-2.5-flash'
 }) || null;
 
 export default genAI;

@@ -8,6 +8,14 @@ export class AIService {
      */
     async processChat(userId: string, message: string): Promise<any> {
         try {
+            // Verificar se a API Gemini está configurada
+            if (!geminiModel) {
+                return {
+                    action: 'advice',
+                    response: '⚠️ A API Gemini não está configurada.\n\nPara usar o assistente IA, você precisa:\n\n1. Obter uma chave gratuita em: https://makersuite.google.com/app/apikey\n2. Adicionar GEMINI_API_KEY no arquivo .env.docker\n3. Reiniciar os containers\n\nEnquanto isso, você pode usar as outras funcionalidades do sistema!'
+                };
+            }
+
             // Buscar contexto do usuário
             const user = await prisma.user.findUnique({
                 where: { id: userId },
@@ -64,6 +72,11 @@ export class AIService {
      */
     async processReceipt(imageBase64: string): Promise<any> {
         try {
+            // Verificar se a API Gemini está configurada
+            if (!geminiVisionModel) {
+                throw new Error('API Gemini não configurada. Configure GEMINI_API_KEY para usar esta funcionalidade.');
+            }
+
             const prompt = `Analise este comprovante de pagamento e extraia as seguintes informações em formato JSON:
 {
   "amount": valor numérico (apenas números, sem R$),

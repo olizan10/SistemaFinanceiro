@@ -238,7 +238,8 @@ export default function AIAssistant() {
 
             setMessages(prev => [...prev, assistantMessage]);
 
-            if (data.action) {
+            // Só recarregar se for uma ação que modifica dados (não para advice)
+            if (data.action && data.action !== 'advice' && data.action !== 'query_balance' && data.action !== 'query_status') {
                 setTimeout(() => window.location.reload(), 1500);
             }
         } catch (error: any) {
