@@ -1,15 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import AIAssistant from '@/components/AIAssistant';
-import ThemeToggle from '@/components/ThemeToggle';
+import DashboardLayout from '@/components/DashboardLayout';
+import Link from 'next/link';
 
 interface FinancialHealth {
     status: string;
     color: string;
     score: number;
-    message: string;
     suggestions: string[];
     metrics: {
         income: number;
@@ -20,71 +18,61 @@ interface FinancialHealth {
     };
 }
 
+interface QuickStats {
+    accounts: number;
+    cards: number;
+    transactions: number;
+    goals: number;
+}
+
 export default function DashboardPage() {
-    const router = useRouter();
     const [loading, setLoading] = useState(true);
-    const [user, setUser] = useState<any>(null);
     const [health, setHealth] = useState<FinancialHealth | null>(null);
+    const [stats, setStats] = useState<QuickStats>({ accounts: 0, cards: 0, transactions: 0, goals: 0 });
 
     useEffect(() => {
-        // Verificar autenticação
-        const token = localStorage.getItem('token');
-        const userData = localStorage.getItem('user');
+        fetchDashboardData();
+    }, []);
 
-        if (!token || !userData) {
-            router.push('/login');
-            return;
-        }
-
-        setUser(JSON.parse(userData));
-        fetchDashboardData(token);
-    }, [router]);
-
-    const fetchDashboardData = async (token: string) => {
+    const fetchDashboardData = async () => {
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dashboard`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+            const token = localStorage.getItem('token');
+            if (!token) return;
 
-            if (!response.ok) {
-                if (response.status === 401) {
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('user');
-                    router.push('/login');
-                    return;
-                }
-                throw new Error('Erro ao carregar dados');
-            }
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dashboard`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
 
             const data = await response.json();
 
-            // Transformar dados do backend para o formato esperado
-            const transformedHealth: FinancialHealth = {
-                status: getStatusLabel(data.financialHealth.status),
-                color: data.financialHealth.status,
-                score: data.financialHealth.healthScore,
-                message: getStatusMessage(data.financialHealth.status, data.financialHealth.debtRatio),
-                suggestions: data.financialHealth.suggestions || [],
+            setHealth({
+                status: data.financialHealth?.status || 'neutral',
+                color: data.financialHealth?.status || 'neutral',
+                score: data.financialHealth?.healthScore || 0,
+                suggestions: data.financialHealth?.suggestions || [],
                 metrics: {
-                    income: data.financialHealth.totalIncome || 0,
-                    expenses: data.financialHealth.totalExpenses || 0,
-                    debts: data.financialHealth.totalDebt || 0,
-                    available: (data.financialHealth.totalIncome || 0) - (data.financialHealth.totalExpenses || 0),
-                    debtRatio: parseFloat(data.financialHealth.debtRatio) || 0
+                    income: data.financialHealth?.totalIncome || 0,
+                    expenses: data.financialHealth?.totalExpenses || 0,
+                    debts: data.financialHealth?.totalDebt || 0,
+                    available: (data.financialHealth?.totalIncome || 0) - (data.financialHealth?.totalExpenses || 0),
+                    debtRatio: parseFloat(data.financialHealth?.debtRatio) || 0
                 }
-            };
+            });
 
-            setHealth(transformedHealth);
+            setStats({
+                accounts: data.accounts?.length || 0,
+                cards: data.creditCards?.length || 0,
+                transactions: data.recentTransactions?.length || 0,
+                goals: data.goals?.length || 0
+            });
         } catch (error) {
-            console.error('Erro ao carregar dashboard:', error);
+            console.error('Error:', error);
         } finally {
             setLoading(false);
         }
     };
 
-    const getStatusLabel = (status: string): string => {
+    const getStatusLabel = (status: string) => {
         const labels: Record<string, string> = {
             neutral: 'Comece Agora',
             critical: 'Crítico',
@@ -98,36 +86,10 @@ export default function DashboardPage() {
         return labels[status] || 'Comece Agora';
     };
 
-    const getStatusMessage = (status: string, debtRatio: number): string => {
-        const messages: Record<string, string> = {
-            neutral: 'Bem-vindo! Comece adicionando suas primeiras transações para ter uma análise completa.',
-            critical: `Você está com ${debtRatio}% da renda comprometida com dívidas. Ação urgente necessária!`,
-            concerning: `${debtRatio}% da renda está comprometida. É hora de reduzir as dívidas.`,
-            attention: `${debtRatio}% da renda comprometida. Mantenha o controle para não piorar.`,
-            controlled: 'Suas finanças estão sob controle. Continue assim!',
-            healthy: 'Parabéns! Sua saúde financeira está ótima.',
-            saving: 'Excelente! Você está conseguindo poupar regularmente.',
-            excellent: 'Incrível! Suas finanças estão exemplares.'
-        };
-        return messages[status] || 'Comece a organizar suas finanças agora!';
+    const getStatusEmoji = (score: number) => {
+        const emojis = ['', '🔴', '🟠', '🟡', '🟢', '💚', '🔵', '💙'];
+        return emojis[score] || '🚀';
     };
-
-    const handleLogout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        router.push('/');
-    };
-
-    if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="text-center">
-                    <div className="spinner w-16 h-16 mx-auto mb-4"></div>
-                    <p className="text-gray-400">Carregando seu dashboard...</p>
-                </div>
-            </div>
-        );
-    }
 
     const getColorClass = (color: string) => {
         const colors: Record<string, string> = {
@@ -143,200 +105,142 @@ export default function DashboardPage() {
         return colors[color] || 'from-indigo-500 to-purple-600';
     };
 
+    const quickLinks = [
+        { href: '/accounts', icon: '🏦', label: 'Contas', count: stats.accounts },
+        { href: '/cards', icon: '💳', label: 'Cartões', count: stats.cards },
+        { href: '/transactions', icon: '💸', label: 'Transações', count: stats.transactions },
+        { href: '/goals', icon: '🎯', label: 'Metas', count: stats.goals },
+    ];
+
+    if (loading) {
+        return (
+            <DashboardLayout title="Dashboard" subtitle="Visão geral das suas finanças">
+                <div className="flex items-center justify-center h-64">
+                    <div className="spinner w-12 h-12"></div>
+                </div>
+            </DashboardLayout>
+        );
+    }
+
     return (
-        <div className="min-h-screen p-8">
-            {/* Header */}
-            <div className="max-w-7xl mx-auto mb-8">
-                <div className="flex justify-between items-center">
-                    <div>
-                        <h1 className="text-4xl font-bold gradient-text mb-2">
-                            Dashboard Financeiro
-                        </h1>
-                        <p className="text-gray-600 dark:text-gray-400">
-                            Bem-vindo, {user?.name}! 👋
-                        </p>
+        <DashboardLayout title="Dashboard" subtitle="Visão geral das suas finanças">
+            {/* Financial Health Card */}
+            {health && (
+                <div className={`glass rounded-3xl p-8 bg-gradient-to-br ${getColorClass(health.color)} mb-8`}>
+                    <div className="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 className="text-3xl font-bold text-white mb-2">
+                                {getStatusLabel(health.status)}
+                            </h2>
+                            <p className="text-lg text-white/80">
+                                Sua saúde financeira está {health.status === 'neutral' ? 'pronta para começar' : health.status}
+                            </p>
+                        </div>
+                        <div className="text-6xl">{getStatusEmoji(health.score)}</div>
                     </div>
-                    <div className="flex items-center gap-4">
-                        <ThemeToggle />
-                        <button
-                            onClick={handleLogout}
-                            className="btn glass px-6 py-3 rounded-xl hover:bg-red-500/20 transition-colors"
-                        >
-                            Sair 🚪
-                        </button>
+
+                    {/* Metrics */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="bg-white/10 backdrop-blur-sm p-4 rounded-xl">
+                            <p className="text-sm text-white/70 mb-1">Renda</p>
+                            <p className="text-2xl font-bold text-white">
+                                R$ {health.metrics.income.toLocaleString('pt-BR')}
+                            </p>
+                        </div>
+                        <div className="bg-white/10 backdrop-blur-sm p-4 rounded-xl">
+                            <p className="text-sm text-white/70 mb-1">Despesas</p>
+                            <p className="text-2xl font-bold text-white">
+                                R$ {health.metrics.expenses.toLocaleString('pt-BR')}
+                            </p>
+                        </div>
+                        <div className="bg-white/10 backdrop-blur-sm p-4 rounded-xl">
+                            <p className="text-sm text-white/70 mb-1">Dívidas</p>
+                            <p className="text-2xl font-bold text-white">
+                                R$ {health.metrics.debts.toLocaleString('pt-BR')}
+                            </p>
+                        </div>
+                        <div className="bg-white/10 backdrop-blur-sm p-4 rounded-xl">
+                            <p className="text-sm text-white/70 mb-1">Disponível</p>
+                            <p className="text-2xl font-bold text-white">
+                                R$ {health.metrics.available.toLocaleString('pt-BR')}
+                            </p>
+                        </div>
                     </div>
                 </div>
+            )}
+
+            {/* Quick Links */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                {quickLinks.map((link) => (
+                    <Link
+                        key={link.href}
+                        href={link.href}
+                        className="glass rounded-2xl p-6 hover:shadow-xl hover:scale-105 transition-all group"
+                    >
+                        <div className="flex items-center gap-4">
+                            <span className="text-4xl">{link.icon}</span>
+                            <div>
+                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{link.count}</p>
+                                <p className="text-sm text-gray-500">{link.label}</p>
+                            </div>
+                        </div>
+                    </Link>
+                ))}
             </div>
 
-            <div className="max-w-7xl mx-auto space-y-8">
-                {/* Saúde Financeira */}
-                {health && (
-                    <div className={`glass rounded-3xl p-8 bg-gradient-to-br ${getColorClass(health.color)} fade-in-up`}>
-                        <div className="flex items-center justify-between mb-6">
-                            <div>
-                                <h2 className="text-3xl font-bold mb-2">
-                                    {health.status}
-                                </h2>
-                                <p className="text-lg opacity-90">
-                                    {health.message}
-                                </p>
-                            </div>
-                            <div className="text-6xl">
-                                {health.score === 1 && '🔴'}
-                                {health.score === 2 && '🟠'}
-                                {health.score === 3 && '🟡'}
-                                {health.score === 4 && '🟢'}
-                                {health.score === 5 && '💚'}
-                                {health.score === 6 && '🔵'}
-                                {health.score === 7 && '💙'}
-                            </div>
-                        </div>
-
-                        {/* Métricas */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="glass p-4 rounded-xl">
-                                <p className="text-sm opacity-70 mb-1">Renda</p>
-                                <p className="text-2xl font-bold">
-                                    R$ {health.metrics.income.toLocaleString('pt-BR')}
-                                </p>
-                            </div>
-                            <div className="glass p-4 rounded-xl">
-                                <p className="text-sm opacity-70 mb-1">Despesas</p>
-                                <p className="text-2xl font-bold">
-                                    R$ {health.metrics.expenses.toLocaleString('pt-BR')}
-                                </p>
-                            </div>
-                            <div className="glass p-4 rounded-xl">
-                                <p className="text-sm opacity-70 mb-1">Dívidas</p>
-                                <p className="text-2xl font-bold">
-                                    R$ {health.metrics.debts.toLocaleString('pt-BR')}
-                                </p>
-                            </div>
-                            <div className="glass p-4 rounded-xl">
-                                <p className="text-sm opacity-70 mb-1">Disponível</p>
-                                <p className="text-2xl font-bold">
-                                    R$ {health.metrics.available.toLocaleString('pt-BR')}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Sugestões da IA */}
-                {health && health.suggestions.length > 0 && (
-                    <div className="glass rounded-3xl p-8 fade-in-up">
-                        <h3 className="text-2xl font-bold mb-4 flex items-center gap-2 text-gray-900 dark:text-white">
-                            <span>💡</span>
-                            Sugestões da IA
-                        </h3>
-                        <div className="space-y-3">
-                            {health.suggestions.map((suggestion, idx) => (
-                                <div key={idx} className="flex gap-3 items-start">
-                                    <span className="text-purple-500 mt-1">•</span>
-                                    <p className="text-gray-700 dark:text-gray-300">{suggestion}</p>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Estado vazio para novo usuário */}
-                {health && health.metrics.income === 0 && (
-                    <div className="glass rounded-3xl p-12 text-center fade-in-up">
-                        <div className="text-6xl mb-4">🚀</div>
-                        <h3 className="text-3xl font-bold mb-4 gradient-text">
-                            Comece sua jornada financeira!
-                        </h3>
-                        <p className="text-xl text-gray-400 mb-8 max-w-2xl mx-auto">
-                            Use o assistente de IA 🤖 para adicionar suas primeiras transações, contas e começar a controlar suas finanças.
-                        </p>
-                        <div className="flex gap-4 justify-center flex-wrap">
-                            <div className="glass p-6 rounded-2xl max-w-xs">
-                                <div className="text-4xl mb-3">💬</div>
-                                <h4 className="font-bold mb-2">Fale com a IA</h4>
-                                <p className="text-sm text-gray-400">
-                                    "Adicionar renda de R$5000"
-                                </p>
-                            </div>
-                            <div className="glass p-6 rounded-2xl max-w-xs">
-                                <div className="text-4xl mb-3">📷</div>
-                                <h4 className="font-bold mb-2">Envie Comprovantes</h4>
-                                <p className="text-sm text-gray-400">
-                                    Tire foto e a IA processa automaticamente
-                                </p>
-                            </div>
-                            <div className="glass p-6 rounded-2xl max-w-xs">
-                                <div className="text-4xl mb-3">📊</div>
-                                <h4 className="font-bold mb-2">Veja Análises</h4>
-                                <p className="text-sm text-gray-400">
-                                    Receba insights sobre sua saúde financeira
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Legenda de cores */}
-                <div className="glass rounded-3xl p-8 fade-in-up">
-                    <h3 className="text-2xl font-bold mb-6">
-                        Indicadores de Saúde Financeira
+            {/* AI Suggestions */}
+            {health && health.suggestions.length > 0 && (
+                <div className="glass rounded-2xl p-6 mb-8">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                        💡 Sugestões da IA
                     </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div className="flex items-center gap-3">
-                            <div className="w-4 h-4 rounded-full bg-red-700"></div>
-                            <div>
-                                <p className="font-semibold">🔴 Crítico</p>
-                                <p className="text-sm text-gray-400">&gt; 70% dívidas</p>
+                    <div className="space-y-3">
+                        {health.suggestions.slice(0, 3).map((suggestion, idx) => (
+                            <div key={idx} className="flex gap-3 items-start">
+                                <span className="text-purple-500 mt-1">•</span>
+                                <p className="text-gray-600 dark:text-gray-300">{suggestion}</p>
                             </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <div className="w-4 h-4 rounded-full bg-orange-700"></div>
-                            <div>
-                                <p className="font-semibold">🟠 Preocupante</p>
-                                <p className="text-sm text-gray-400">50-70%</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <div className="w-4 h-4 rounded-full bg-yellow-700"></div>
-                            <div>
-                                <p className="font-semibold">🟡 Atenção</p>
-                                <p className="text-sm text-gray-400">30-50%</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <div className="w-4 h-4 rounded-full bg-green-700"></div>
-                            <div>
-                                <p className="font-semibold">🟢 Controlado</p>
-                                <p className="text-sm text-gray-400">10-30%</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <div className="w-4 h-4 rounded-full bg-green-600"></div>
-                            <div>
-                                <p className="font-semibold">💚 Saudável</p>
-                                <p className="text-sm text-gray-400">0-10%</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <div className="w-4 h-4 rounded-full bg-blue-700"></div>
-                            <div>
-                                <p className="font-semibold">🔵 Poupando</p>
-                                <p className="text-sm text-gray-400">10-20% economia</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <div className="w-4 h-4 rounded-full bg-blue-600"></div>
-                            <div>
-                                <p className="font-semibold">💙 Excelente</p>
-                                <p className="text-sm text-gray-400">&gt; 20% economia</p>
-                            </div>
-                        </div>
+                        ))}
                     </div>
                 </div>
-            </div>
+            )}
 
-            {/* Assistente de IA */}
-            <AIAssistant />
-        </div>
+            {/* Quick Actions */}
+            <div className="glass rounded-2xl p-6">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                    ⚡ Ações Rápidas
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <Link
+                        href="/transactions"
+                        className="p-4 bg-green-500/10 hover:bg-green-500/20 rounded-xl text-center transition-colors"
+                    >
+                        <span className="text-2xl block mb-2">💰</span>
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Adicionar Receita</span>
+                    </Link>
+                    <Link
+                        href="/transactions"
+                        className="p-4 bg-red-500/10 hover:bg-red-500/20 rounded-xl text-center transition-colors"
+                    >
+                        <span className="text-2xl block mb-2">💸</span>
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Adicionar Despesa</span>
+                    </Link>
+                    <Link
+                        href="/goals"
+                        className="p-4 bg-purple-500/10 hover:bg-purple-500/20 rounded-xl text-center transition-colors"
+                    >
+                        <span className="text-2xl block mb-2">🎯</span>
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Nova Meta</span>
+                    </Link>
+                    <Link
+                        href="/reports"
+                        className="p-4 bg-blue-500/10 hover:bg-blue-500/20 rounded-xl text-center transition-colors"
+                    >
+                        <span className="text-2xl block mb-2">📊</span>
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Ver Relatórios</span>
+                    </Link>
+                </div>
+            </div>
+        </DashboardLayout>
     );
 }
