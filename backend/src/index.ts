@@ -22,6 +22,7 @@ import { feesRouter } from './routes/fees.routes';
 import variableExpensesRouter from './routes/variable-expenses.routes';
 import debtSimulatorRouter from './routes/debt-simulator.routes';
 import reportsRouter from './routes/reports.routes';
+import investmentsRouter from './routes/investments.routes';
 
 dotenv.config();
 
@@ -63,6 +64,7 @@ app.use('/api/fees', feesRouter);
 app.use('/api/variable-expenses', variableExpensesRouter);
 app.use('/api/debt-simulator', debtSimulatorRouter);
 app.use('/api/reports', reportsRouter);
+app.use('/api/investments', investmentsRouter);
 
 // Error handling middleware
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {

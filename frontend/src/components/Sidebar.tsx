@@ -24,6 +24,7 @@ const menuItems: SidebarItem[] = [
     { href: '/fixed-expenses', label: 'Contas Fixas', icon: '📅' },
     { href: '/history', label: 'Histórico', icon: '📜' },
     { href: '/fees', label: 'Taxas/Juros', icon: '💹' },
+    { href: '/investments', label: 'Investimentos', icon: '📈' },
     { href: '/family', label: 'Família', icon: '👨‍👩‍👧' },
     { href: '/reports', label: 'Relatórios', icon: '📈' },
     { href: '/settings', label: 'Configurações', icon: '⚙️' },
