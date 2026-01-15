@@ -51,7 +51,7 @@ router.get('/:id/invoice', async (req: Request, res: Response) => {
 router.post('/', async (req: Request, res: Response) => {
     try {
         const userId = (req as any).userId;
-        const { name, lastFourDigits, limit, closingDay, dueDay } = req.body;
+        const { name, lastFourDigits, cardholderName, brand, expiryDate, limit, closingDay, dueDay, responsiblePerson } = req.body;
 
         if (!name || !limit) {
             return res.status(400).json({ error: 'Nome e limite são obrigatórios' });
@@ -62,10 +62,14 @@ router.post('/', async (req: Request, res: Response) => {
                 userId,
                 name,
                 lastFourDigits: lastFourDigits || '0000',
+                cardholderName: cardholderName || null,
+                brand: brand || null,
+                expiryDate: expiryDate || null,
                 limit: parseFloat(limit),
                 closingDay: parseInt(closingDay) || 1,
                 dueDay: parseInt(dueDay) || 10,
-                currentBalance: 0
+                currentBalance: 0,
+                responsiblePerson: responsiblePerson || 'eu'
             }
         });
 
@@ -90,9 +94,13 @@ router.put('/:id', async (req: Request, res: Response) => {
             data: {
                 name: updates.name || existing.name,
                 lastFourDigits: updates.lastFourDigits || existing.lastFourDigits,
+                cardholderName: updates.cardholderName !== undefined ? updates.cardholderName : existing.cardholderName,
+                brand: updates.brand !== undefined ? updates.brand : existing.brand,
+                expiryDate: updates.expiryDate !== undefined ? updates.expiryDate : existing.expiryDate,
                 limit: updates.limit ? parseFloat(updates.limit) : existing.limit,
                 closingDay: updates.closingDay ? parseInt(updates.closingDay) : existing.closingDay,
-                dueDay: updates.dueDay ? parseInt(updates.dueDay) : existing.dueDay
+                dueDay: updates.dueDay ? parseInt(updates.dueDay) : existing.dueDay,
+                responsiblePerson: updates.responsiblePerson || existing.responsiblePerson
             }
         });
 

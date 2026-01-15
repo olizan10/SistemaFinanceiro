@@ -11,6 +11,17 @@ import { goalRouter } from './routes/goal.routes';
 import { aiRouter } from './routes/ai.routes';
 import { dashboardRouter } from './routes/dashboard.routes';
 import { receiptRouter } from './routes/receipt.routes';
+import { thirdPartyLoanRouter } from './routes/thirdPartyLoan.routes';
+import { fixedExpenseRouter } from './routes/fixedExpense.routes';
+import { cardDebtRouter } from './routes/cardDebt.routes';
+import { familyMemberRouter } from './routes/familyMember.routes';
+import { chatHistoryRouter } from './routes/chatHistory.routes';
+import { historyRouter } from './routes/history.routes';
+import { alertsRouter } from './routes/alerts.routes';
+import { feesRouter } from './routes/fees.routes';
+import variableExpensesRouter from './routes/variable-expenses.routes';
+import debtSimulatorRouter from './routes/debt-simulator.routes';
+import reportsRouter from './routes/reports.routes';
 
 dotenv.config();
 
@@ -41,6 +52,17 @@ app.use('/api/goals', goalRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/receipts', receiptRouter);
+app.use('/api/third-party-loans', thirdPartyLoanRouter);
+app.use('/api/fixed-expenses', fixedExpenseRouter);
+app.use('/api/card-debts', cardDebtRouter);
+app.use('/api/family-members', familyMemberRouter);
+app.use('/api/chat-history', chatHistoryRouter);
+app.use('/api/history', historyRouter);
+app.use('/api/alerts', alertsRouter);
+app.use('/api/fees', feesRouter);
+app.use('/api/variable-expenses', variableExpensesRouter);
+app.use('/api/debt-simulator', debtSimulatorRouter);
+app.use('/api/reports', reportsRouter);
 
 // Error handling middleware
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {

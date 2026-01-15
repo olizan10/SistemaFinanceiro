@@ -8,11 +8,24 @@ interface CreditCard {
     id: string;
     name: string;
     lastFourDigits: string;
+    cardholderName: string | null;
+    brand: string | null;
+    expiryDate: string | null;
     limit: number;
     closingDay: number;
     dueDay: number;
     currentBalance: number;
+    responsiblePerson: string;
 }
+
+const brandIcons: Record<string, string> = {
+    visa: '💳',
+    mastercard: '💳',
+    elo: '💳',
+    amex: '💳',
+    hipercard: '💳',
+    other: '💳'
+};
 
 export default function CardsPage() {
     const [cards, setCards] = useState<CreditCard[]>([]);
@@ -22,9 +35,13 @@ export default function CardsPage() {
     const [formData, setFormData] = useState({
         name: '',
         lastFourDigits: '',
+        cardholderName: '',
+        brand: '',
+        expiryDate: '',
         limit: '',
         closingDay: '1',
-        dueDay: '10'
+        dueDay: '10',
+        responsiblePerson: 'eu'
     });
 
     useEffect(() => { fetchCards(); }, []);
@@ -81,18 +98,27 @@ export default function CardsPage() {
             setFormData({
                 name: card.name,
                 lastFourDigits: card.lastFourDigits,
+                cardholderName: card.cardholderName || '',
+                brand: card.brand || '',
+                expiryDate: card.expiryDate || '',
                 limit: card.limit.toString(),
                 closingDay: card.closingDay.toString(),
-                dueDay: card.dueDay.toString()
+                dueDay: card.dueDay.toString(),
+                responsiblePerson: card.responsiblePerson || 'eu'
             });
         } else {
             setEditingCard(null);
-            setFormData({ name: '', lastFourDigits: '', limit: '', closingDay: '1', dueDay: '10' });
+            setFormData({ name: '', lastFourDigits: '', cardholderName: '', brand: '', expiryDate: '', limit: '', closingDay: '1', dueDay: '10', responsiblePerson: 'eu' });
         }
         setIsModalOpen(true);
     };
 
     const closeModal = () => { setIsModalOpen(false); setEditingCard(null); };
+
+    const getResponsibleLabel = (person: string) => {
+        const labels: Record<string, string> = { eu: '👤 Eu', spouse: '👩 Esposa', both: '👥 Casal' };
+        return labels[person] || person;
+    };
 
     const totalLimit = cards.reduce((s, c) => s + c.limit, 0);
     const totalUsed = cards.reduce((s, c) => s + c.currentBalance, 0);
@@ -150,16 +176,28 @@ export default function CardsPage() {
                         const usedPercentage = (card.currentBalance / card.limit) * 100;
                         return (
                             <div key={card.id} className="glass rounded-2xl p-6 bg-gradient-to-br from-gray-900 to-gray-800 text-white hover:shadow-xl transition-all group">
-                                <div className="flex justify-between items-start mb-6">
+                                <div className="flex justify-between items-start mb-4">
                                     <div>
                                         <p className="text-lg font-bold">{card.name}</p>
                                         <p className="text-sm opacity-70">**** {card.lastFourDigits}</p>
+                                        {card.cardholderName && (
+                                            <p className="text-xs opacity-50 mt-1">{card.cardholderName}</p>
+                                        )}
                                     </div>
-                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
-                                        <button onClick={() => openModal(card)} className="p-2 hover:bg-white/10 rounded-lg">✏️</button>
-                                        <button onClick={() => handleDelete(card.id)} className="p-2 hover:bg-red-500/30 rounded-lg">🗑️</button>
+                                    <div className="flex flex-col items-end gap-1">
+                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                                            <button onClick={() => openModal(card)} className="p-2 hover:bg-white/10 rounded-lg">✏️</button>
+                                            <button onClick={() => handleDelete(card.id)} className="p-2 hover:bg-red-500/30 rounded-lg">🗑️</button>
+                                        </div>
+                                        <span className="text-xs bg-white/10 px-2 py-1 rounded">
+                                            {getResponsibleLabel(card.responsiblePerson)}
+                                        </span>
                                     </div>
                                 </div>
+
+                                {card.brand && (
+                                    <p className="text-xs opacity-50 mb-2 uppercase">{card.brand} {card.expiryDate && `• ${card.expiryDate}`}</p>
+                                )}
 
                                 <div className="mb-4">
                                     <div className="flex justify-between text-sm mb-1">
@@ -189,20 +227,20 @@ export default function CardsPage() {
             )}
 
             {/* Modal */}
-            <Modal isOpen={isModalOpen} onClose={closeModal} title={editingCard ? 'Editar Cartão' : 'Novo Cartão'}>
+            <Modal isOpen={isModalOpen} onClose={closeModal} title={editingCard ? 'Editar Cartão' : 'Novo Cartão'} size="lg">
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome do Cartão</label>
-                        <input
-                            type="text"
-                            value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl"
-                            placeholder="Ex: Nubank, Itaú..."
-                            required
-                        />
-                    </div>
                     <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome do Cartão *</label>
+                            <input
+                                type="text"
+                                value={formData.name}
+                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl"
+                                placeholder="Ex: Nubank, Itaú..."
+                                required
+                            />
+                        </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Últimos 4 dígitos</label>
                             <input
@@ -214,8 +252,61 @@ export default function CardsPage() {
                                 placeholder="0000"
                             />
                         </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Limite</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome do Titular</label>
+                            <input
+                                type="text"
+                                value={formData.cardholderName}
+                                onChange={(e) => setFormData({ ...formData, cardholderName: e.target.value })}
+                                className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl"
+                                placeholder="NOME SOBRENOME"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Quem Usa</label>
+                            <select
+                                value={formData.responsiblePerson}
+                                onChange={(e) => setFormData({ ...formData, responsiblePerson: e.target.value })}
+                                className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl"
+                            >
+                                <option value="eu">👤 Eu</option>
+                                <option value="spouse">👩 Esposa</option>
+                                <option value="both">👥 Casal</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bandeira</label>
+                            <select
+                                value={formData.brand}
+                                onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                                className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl"
+                            >
+                                <option value="">Selecione...</option>
+                                <option value="visa">Visa</option>
+                                <option value="mastercard">Mastercard</option>
+                                <option value="elo">Elo</option>
+                                <option value="amex">American Express</option>
+                                <option value="hipercard">Hipercard</option>
+                                <option value="other">Outra</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Validade</label>
+                            <input
+                                type="text"
+                                placeholder="MM/AA"
+                                maxLength={5}
+                                value={formData.expiryDate}
+                                onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
+                                className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Limite *</label>
                             <input
                                 type="number"
                                 value={formData.limit}

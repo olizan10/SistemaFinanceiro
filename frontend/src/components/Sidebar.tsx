@@ -11,15 +11,24 @@ interface SidebarItem {
 
 const menuItems: SidebarItem[] = [
     { href: '/dashboard', label: 'Dashboard', icon: '📊' },
+    { href: '/alerts', label: 'Alertas', icon: '🔔' },
     { href: '/accounts', label: 'Contas', icon: '🏦' },
-    { href: '/cards', label: 'Cartões', icon: '💳' },
+    { href: '/variable-expenses', label: 'Gastos Diários', icon: '☕' },
+    { href: '/card-debts', label: 'Dívidas Cartão', icon: '💳' },
     { href: '/transactions', label: 'Transações', icon: '💸' },
     { href: '/budgets', label: 'Orçamentos', icon: '📋' },
     { href: '/goals', label: 'Metas', icon: '🎯' },
     { href: '/loans', label: 'Empréstimos', icon: '💰' },
+    { href: '/third-party-loans', label: 'Terceiros', icon: '🤝' },
+    { href: '/debt-simulator', label: 'Simulador', icon: '🧮' },
+    { href: '/fixed-expenses', label: 'Contas Fixas', icon: '📅' },
+    { href: '/history', label: 'Histórico', icon: '📜' },
+    { href: '/fees', label: 'Taxas/Juros', icon: '💹' },
+    { href: '/family', label: 'Família', icon: '👨‍👩‍👧' },
     { href: '/reports', label: 'Relatórios', icon: '📈' },
     { href: '/settings', label: 'Configurações', icon: '⚙️' },
 ];
+
 
 interface SidebarProps {
     isOpen: boolean;
@@ -68,8 +77,8 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
                                 key={item.href}
                                 href={item.href}
                                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive
-                                        ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
-                                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
+                                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                                     }`}
                             >
                                 <span className="text-xl">{item.icon}</span>

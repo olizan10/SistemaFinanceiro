@@ -25,11 +25,13 @@ export default function AIAssistant() {
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [caption, setCaption] = useState('');
+    const [isListening, setIsListening] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioChunksRef = useRef<Blob[]>([]);
+    const recognitionRef = useRef<any>(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -72,7 +74,47 @@ export default function AIAssistant() {
     // Copiar mensagem
     const copyMessage = (text: string) => {
         navigator.clipboard.writeText(text);
-        // Feedback visual opcional
+    };
+
+    // Speech-to-Text (Web Speech API)
+    const startListening = () => {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            alert('Seu navegador não suporta reconhecimento de voz. Use Chrome ou Edge.');
+            return;
+        }
+
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        recognitionRef.current = recognition;
+
+        recognition.lang = 'pt-BR';
+        recognition.continuous = false;
+        recognition.interimResults = true;
+
+        recognition.onStart = () => setIsListening(true);
+        recognition.onEnd = () => setIsListening(false);
+
+        recognition.onresult = (event: any) => {
+            let transcript = '';
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                transcript += event.results[i][0].transcript;
+            }
+            setInput(transcript);
+        };
+
+        recognition.onerror = (event: any) => {
+            console.error('Speech recognition error:', event.error);
+            setIsListening(false);
+        };
+
+        recognition.start();
+    };
+
+    const stopListening = () => {
+        if (recognitionRef.current) {
+            recognitionRef.current.stop();
+            setIsListening(false);
+        }
     };
 
     // Áudio
@@ -478,6 +520,14 @@ export default function AIAssistant() {
                                 title={isRecording ? 'Parar gravação' : 'Gravar áudio'}
                             >
                                 {isRecording ? '⏹️' : '🎤'}
+                            </button>
+                            <button
+                                onClick={isListening ? stopListening : startListening}
+                                disabled={loading}
+                                className={`p-2 text-xl ${isListening ? 'text-green-500 animate-pulse' : 'text-gray-600 dark:text-gray-400'} hover:text-purple-600 dark:hover:text-purple-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50`}
+                                title={isListening ? 'Parar ditado' : 'Ditado por voz'}
+                            >
+                                {isListening ? '🗣️' : '🎙️'}
                             </button>
 
                             {/* Input de texto */}

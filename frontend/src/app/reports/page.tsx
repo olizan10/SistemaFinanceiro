@@ -83,8 +83,8 @@ export default function ReportsPage() {
 
     return (
         <DashboardLayout title="Relatórios" subtitle="Análise das suas finanças">
-            {/* Period Filter */}
-            <div className="mb-6">
+            {/* Period Filter & Export */}
+            <div className="flex flex-wrap items-center gap-4 mb-6">
                 <select
                     value={period}
                     onChange={(e) => setPeriod(e.target.value)}
@@ -96,6 +96,27 @@ export default function ReportsPage() {
                     <option value="180">Últimos 6 meses</option>
                     <option value="365">Último ano</option>
                 </select>
+
+                <div className="flex gap-2 ml-auto">
+                    <button
+                        onClick={() => {
+                            const token = localStorage.getItem('token');
+                            window.open(`${process.env.NEXT_PUBLIC_API_URL}/reports/export/json`, '_blank');
+                        }}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 flex items-center gap-2"
+                    >
+                        📥 Exportar JSON
+                    </button>
+                    <button
+                        onClick={() => {
+                            const token = localStorage.getItem('token');
+                            window.open(`${process.env.NEXT_PUBLIC_API_URL}/reports/export/csv`, '_blank');
+                        }}
+                        className="px-4 py-2 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 flex items-center gap-2"
+                    >
+                        📊 Exportar CSV
+                    </button>
+                </div>
             </div>
 
             {/* Summary Cards */}

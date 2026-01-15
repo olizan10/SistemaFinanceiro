@@ -9,13 +9,14 @@ router.use(authMiddleware);
 router.get('/', async (req: Request, res: Response) => {
     try {
         const userId = (req as any).userId;
-        const { type, category, accountId, startDate, endDate, limit } = req.query;
+        const { type, category, accountId, startDate, endDate, limit, responsiblePerson } = req.query;
 
         const where: any = { userId };
 
         if (type) where.type = type;
         if (category) where.category = category;
         if (accountId) where.accountId = accountId;
+        if (responsiblePerson) where.responsiblePerson = responsiblePerson;
         if (startDate || endDate) {
             where.date = {};
             if (startDate) where.date.gte = new Date(startDate as string);
@@ -81,7 +82,7 @@ router.get('/summary', async (req: Request, res: Response) => {
 router.post('/', async (req: Request, res: Response) => {
     try {
         const userId = (req as any).userId;
-        const { type, category, amount, description, date, accountId, creditCardId, isPaid, isRecurring, recurringType } = req.body;
+        const { type, category, amount, description, date, accountId, creditCardId, isPaid, isRecurring, recurringType, responsiblePerson } = req.body;
 
         if (!type || !category || !amount || !description) {
             return res.status(400).json({ error: 'Tipo, categoria, valor e descrição são obrigatórios' });
@@ -99,7 +100,8 @@ router.post('/', async (req: Request, res: Response) => {
                 creditCardId: creditCardId || null,
                 isPaid: isPaid ?? true,
                 isRecurring: isRecurring ?? false,
-                recurringType: recurringType || null
+                recurringType: recurringType || null,
+                responsiblePerson: responsiblePerson || 'eu'
             }
         });
 

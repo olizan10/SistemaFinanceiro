@@ -12,6 +12,7 @@ interface Transaction {
     description: string;
     date: string;
     isPaid: boolean;
+    responsiblePerson: string;
     account?: { id: string; name: string };
     creditCard?: { id: string; name: string };
 }
@@ -48,7 +49,7 @@ export default function TransactionsPage() {
     const [accounts, setAccounts] = useState<Account[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [filter, setFilter] = useState({ type: '', category: '', period: '30' });
+    const [filter, setFilter] = useState({ type: '', category: '', period: '30', responsiblePerson: '' });
     const [summary, setSummary] = useState({ totalIncome: 0, totalExpense: 0, balance: 0 });
 
     const [formData, setFormData] = useState({
@@ -58,7 +59,8 @@ export default function TransactionsPage() {
         description: '',
         date: new Date().toISOString().split('T')[0],
         accountId: '',
-        isPaid: true
+        isPaid: true,
+        responsiblePerson: 'eu'
     });
 
     useEffect(() => {
@@ -72,7 +74,7 @@ export default function TransactionsPage() {
 
         try {
             const [transRes, accRes, summRes] = await Promise.all([
-                fetch(`${process.env.NEXT_PUBLIC_API_URL}/transactions?startDate=${startDate.toISOString()}${filter.type ? `&type=${filter.type}` : ''}${filter.category ? `&category=${filter.category}` : ''}`, {
+                fetch(`${process.env.NEXT_PUBLIC_API_URL}/transactions?startDate=${startDate.toISOString()}${filter.type ? `&type=${filter.type}` : ''}${filter.category ? `&category=${filter.category}` : ''}${filter.responsiblePerson ? `&responsiblePerson=${filter.responsiblePerson}` : ''}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 }),
                 fetch(`${process.env.NEXT_PUBLIC_API_URL}/accounts`, {
@@ -123,7 +125,8 @@ export default function TransactionsPage() {
                     description: '',
                     date: new Date().toISOString().split('T')[0],
                     accountId: '',
-                    isPaid: true
+                    isPaid: true,
+                    responsiblePerson: 'eu'
                 });
             }
         } catch (error) {
@@ -222,6 +225,16 @@ export default function TransactionsPage() {
                     <option value="90">Últimos 3 meses</option>
                     <option value="365">Último ano</option>
                 </select>
+                <select
+                    value={filter.responsiblePerson}
+                    onChange={(e) => setFilter({ ...filter, responsiblePerson: e.target.value })}
+                    className="px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl"
+                >
+                    <option value="">Todos</option>
+                    <option value="eu">👤 Eu</option>
+                    <option value="spouse">👩 Esposa</option>
+                    <option value="both">👥 Casal</option>
+                </select>
             </div>
 
             {/* Transactions List */}
@@ -256,6 +269,9 @@ export default function TransactionsPage() {
                                             <p className="text-sm text-gray-500 dark:text-gray-400">
                                                 {catInfo.label} • {formatDate(transaction.date)}
                                                 {transaction.account && ` • ${transaction.account.name}`}
+                                                <span className="ml-2 text-xs bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded">
+                                                    {transaction.responsiblePerson === 'eu' ? '👤 Eu' : transaction.responsiblePerson === 'spouse' ? '👩 Esposa' : '👥 Casal'}
+                                                </span>
                                             </p>
                                         </div>
                                     </div>
@@ -291,8 +307,8 @@ export default function TransactionsPage() {
                             type="button"
                             onClick={() => setFormData({ ...formData, type: 'expense', category: 'food' })}
                             className={`flex-1 py-3 rounded-xl font-medium transition-all ${formData.type === 'expense'
-                                    ? 'bg-red-500 text-white'
-                                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                                ? 'bg-red-500 text-white'
+                                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
                                 }`}
                         >
                             💸 Despesa
@@ -301,8 +317,8 @@ export default function TransactionsPage() {
                             type="button"
                             onClick={() => setFormData({ ...formData, type: 'income', category: 'salary' })}
                             className={`flex-1 py-3 rounded-xl font-medium transition-all ${formData.type === 'income'
-                                    ? 'bg-green-500 text-white'
-                                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                                ? 'bg-green-500 text-white'
+                                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
                                 }`}
                         >
                             💰 Receita
@@ -381,6 +397,21 @@ export default function TransactionsPage() {
                             {accounts.map((acc) => (
                                 <option key={acc.id} value={acc.id}>{acc.name}</option>
                             ))}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Quem Fez
+                        </label>
+                        <select
+                            value={formData.responsiblePerson}
+                            onChange={(e) => setFormData({ ...formData, responsiblePerson: e.target.value })}
+                            className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl"
+                        >
+                            <option value="eu">👤 Eu</option>
+                            <option value="spouse">👩 Esposa</option>
+                            <option value="both">👥 Casal</option>
                         </select>
                     </div>
 

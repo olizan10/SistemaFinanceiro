@@ -20,13 +20,22 @@ model User {
   updatedAt DateTime @updatedAt
 
   // Relações
-  accounts      Account[]
-  transactions  Transaction[]
-  creditCards   CreditCard[]
-  loans         Loan[]
-  budgets       Budget[]
-  goals         Goal[]
-  receipts      Receipt[]
+  accounts             Account[]
+  transactions         Transaction[]
+  creditCards          CreditCard[]
+  loans                Loan[]
+  budgets              Budget[]
+  goals                Goal[]
+  receipts             Receipt[]
+  thirdPartyLoans      ThirdPartyLoan[]
+  fixedExpenses        FixedExpense[]
+  cardDebts            CardDebt[]
+  familyMembers        FamilyMember[]
+  chatHistory          ChatHistory[]
+  expenseCategories    ExpenseCategory[]
+  variableExpenses     VariableExpense[]
+  investments          Investment[]
+  recurringTransactions RecurringTransaction[]
 }
 
 // Contas bancárias
@@ -52,10 +61,14 @@ model CreditCard {
   userId          String
   name            String
   lastFourDigits  String
+  cardholderName  String?  // Nome do titular
+  brand           String?  // Visa, Mastercard, etc.
+  expiryDate      String?  // MM/YY
   limit           Float
   closingDay      Int      // Dia de fechamento da fatura
   dueDay          Int      // Dia de vencimento
   currentBalance  Float    @default(0)
+  responsiblePerson String @default("eu") // eu, spouse, both
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -68,20 +81,21 @@ model CreditCard {
 
 // Transações
 model Transaction {
-  id            String   @id @default(uuid())
-  userId        String
-  accountId     String?
-  creditCardId  String?
-  type          String   // income, expense, transfer
-  category      String
-  amount        Float
-  description   String
-  date          DateTime
-  isPaid        Boolean  @default(false)
-  isRecurring   Boolean  @default(false)
-  recurringType String?  // monthly, yearly, weekly
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                String   @id @default(uuid())
+  userId            String
+  accountId         String?
+  creditCardId      String?
+  type              String   // income, expense, transfer
+  category          String
+  amount            Float
+  description       String
+  date              DateTime
+  isPaid            Boolean  @default(false)
+  isRecurring       Boolean  @default(false)
+  recurringType     String?  // monthly, yearly, weekly
+  responsiblePerson String   @default("eu") // eu, spouse, both
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   account       Account?     @relation(fields: [accountId], references: [id], onDelete: SetNull)
@@ -179,6 +193,277 @@ model Receipt {
   updatedAt   DateTime @updatedAt
 
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// Empréstimos com Terceiros (Agiotas)
+model ThirdPartyLoan {
+  id              String    @id @default(uuid())
+  userId          String
+  familyMemberId  String?   // Quem pegou emprestado
+  creditorName    String    // Nome do credor
+  creditorPhone   String?   // Telefone do credor
+  principalAmount Float     // Valor emprestado
+  monthlyInterest Float     // Taxa de juros mensal (ex: 10 = 10%)
+  currentBalance  Float     // Saldo atual (com juros acumulados)
+  startDate       DateTime  // Data do empréstimo
+  nextPaymentDate DateTime? // Próximo pagamento
+  notes           String?   // Observações
+  status          String    @default("active") // active, paid
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  familyMember    FamilyMember? @relation("FamilyMemberLoans", fields: [familyMemberId], references: [id], onDelete: SetNull)
+  payments        ThirdPartyPayment[]
+
+  @@index([userId])
+}
+
+// Pagamentos de Empréstimos com Terceiros
+model ThirdPartyPayment {
+  id              String    @id @default(uuid())
+  thirdPartyLoanId String
+  amount          Float
+  paymentDate     DateTime
+  notes           String?
+  createdAt       DateTime  @default(now())
+
+  thirdPartyLoan  ThirdPartyLoan @relation(fields: [thirdPartyLoanId], references: [id], onDelete: Cascade)
+
+  @@index([thirdPartyLoanId])
+}
+
+// Contas Fixas (Água, Luz, Internet, etc.)
+model FixedExpense {
+  id          String   @id @default(uuid())
+  userId      String
+  name        String   // Nome (Água, Luz, Internet, Gás)
+  amount      Float    // Valor médio
+  dueDay      Int      // Dia do vencimento
+  category    String   // utility, subscription, insurance
+  isActive    Boolean  @default(true)
+  lastPaidDate DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments    FixedExpensePayment[]
+
+  @@index([userId])
+}
+
+// Histórico de pagamentos de contas fixas
+model FixedExpensePayment {
+  id             String   @id @default(uuid())
+  fixedExpenseId String
+  amount         Float
+  paymentDate    DateTime
+  notes          String?
+  createdAt      DateTime @default(now())
+
+  fixedExpense   FixedExpense @relation(fields: [fixedExpenseId], references: [id], onDelete: Cascade)
+
+  @@index([fixedExpenseId])
+}
+
+// ============================================
+// NOVO SISTEMA DE DÍVIDAS DE CARTÃO
+// ============================================
+
+// Dívida de Cartão (agrupador)
+model CardDebt {
+  id              String   @id @default(uuid())
+  userId          String
+  cardholderName  String   // Nome do titular
+  lastFourDigits  String   // 4 últimos dígitos
+  dueDay          Int      // Dia de vencimento da fatura
+  totalDebt       Float    @default(0) // Total devedor (calculado)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purchases       CardPurchase[]
+  variableExpenses VariableExpense[]
+
+  @@unique([userId, lastFourDigits])
+  @@index([userId])
+}
+
+// Compra no cartão
+model CardPurchase {
+  id                String   @id @default(uuid())
+  cardDebtId        String
+  familyMemberId    String?  // Quem fez a compra
+  description       String   // Descrição da compra
+  purchaseDate      DateTime // Data da compra
+  totalAmount       Float    // Valor total da compra
+  installments      Int      @default(1) // Número de parcelas
+  installmentAmount Float    // Valor de cada parcela
+  paidInstallments  Int      @default(0) // Parcelas já pagas
+  cardFeePercent    Float    @default(0) // Taxa do cartão %
+  status            String   @default("active") // active, paid
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  cardDebt          CardDebt      @relation(fields: [cardDebtId], references: [id], onDelete: Cascade)
+  familyMember      FamilyMember? @relation(fields: [familyMemberId], references: [id], onDelete: SetNull)
+  payments          CardPayment[]
+
+  @@index([cardDebtId])
+}
+
+// Pagamento de parcela do cartão
+model CardPayment {
+  id             String   @id @default(uuid())
+  cardPurchaseId String
+  amount         Float
+  feePaid        Float    @default(0) // Taxa paga
+  paymentDate    DateTime
+  createdAt      DateTime @default(now())
+
+  cardPurchase   CardPurchase @relation(fields: [cardPurchaseId], references: [id], onDelete: Cascade)
+
+  @@index([cardPurchaseId])
+}
+
+// ============================================
+// SISTEMA MULTI-USUÁRIO
+// ============================================
+
+// Membros da família
+model FamilyMember {
+  id          String   @id @default(uuid())
+  userId      String   // Usuário principal
+  name        String
+  lastName    String
+  email       String?
+  canManage   Boolean  @default(false) // Pode gerenciar tudo?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purchases   CardPurchase[]
+  thirdPartyLoans ThirdPartyLoan[] @relation("FamilyMemberLoans")
+
+  @@index([userId])
+}
+
+// ============================================
+// CHAT COM MEMÓRIA
+// ============================================
+
+// Histórico de conversas do chat
+model ChatHistory {
+  id        String   @id @default(uuid())
+  userId    String
+  role      String   // user, assistant
+  content   String   @db.Text
+  metadata  Json?    // Dados extras (ação executada, etc)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// ============================================
+// GASTOS VARIÁVEIS (Pontuais)
+// ============================================
+
+// Categorias de despesas (combustível, alimentação, etc)
+model ExpenseCategory {
+  id            String   @id @default(uuid())
+  userId        String
+  name          String   // Combustível, Alimentação, Transporte, Lazer
+  iconEmoji     String   @default("💰")
+  monthlyBudget Float?   // Orçamento mensal opcional
+  color         String   @default("#8B5CF6")
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  variableExpenses  VariableExpense[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+// Gastos variáveis/pontuais
+model VariableExpense {
+  id          String   @id @default(uuid())
+  userId      String
+  categoryId  String
+  description String
+  amount      Float
+  date        DateTime @default(now())
+  paymentType String   // cartao, pix, dinheiro, debito
+  cardDebtId  String?  // Se pago em cartão de crédito
+  isPaid      Boolean  @default(true) // Dinheiro/PIX = true, Cartão = depende
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category    ExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  cardDebt    CardDebt?       @relation(fields: [cardDebtId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([categoryId])
+  @@index([date])
+}
+
+// ============================================
+// INVESTIMENTOS
+// ============================================
+
+model Investment {
+  id              String   @id @default(uuid())
+  userId          String
+  name            String   // Nome do investimento
+  type            String   // cdb, poupanca, acoes, cripto, tesouro, outros
+  institution     String?  // Banco/corretora
+  initialAmount   Float    // Valor inicial investido
+  currentValue    Float    // Valor atual
+  interestRate    Float?   // Taxa de rendimento %
+  startDate       DateTime
+  maturityDate    DateTime? // Data de vencimento (se houver)
+  isActive        Boolean  @default(true)
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ============================================
+// TRANSAÇÕES RECORRENTES
+// ============================================
+
+model RecurringTransaction {
+  id              String   @id @default(uuid())
+  userId          String
+  description     String
+  amount          Float
+  type            String   // expense, income
+  categoryId      String?  // Categoria (se despesa)
+  frequency       String   // monthly, weekly, yearly
+  dayOfMonth      Int?     // Dia do mês (para monthly)
+  dayOfWeek       Int?     // Dia da semana (para weekly)
+  startDate       DateTime
+  endDate         DateTime?
+  lastProcessed   DateTime?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }

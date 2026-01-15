@@ -3,8 +3,8 @@ import prisma from '../config/database';
 
 export class AIService {
     /**
-     * Processa comandos de chat do usuário
-     * Exemplos: "Adicionar gasto de R$50 no Nubank", "Quanto tenho disponível?"
+     * Processa comandos de chat do usuário com memória contextual
+     * Agora salva e usa histórico de conversas anteriores
      */
     async processChat(userId: string, message: string): Promise<any> {
         try {
@@ -16,7 +16,7 @@ export class AIService {
                 };
             }
 
-            // Buscar contexto do usuário
+            // Buscar contexto do usuário com dados financeiros
             const user = await prisma.user.findUnique({
                 where: { id: userId },
                 include: {
@@ -34,33 +34,105 @@ export class AIService {
                 throw new Error('User not found');
             }
 
-            // Criar prompt contextualizado
+            // Buscar histórico de conversas (últimas 20 mensagens)
+            const chatHistory = await prisma.chatHistory.findMany({
+                where: { userId },
+                orderBy: { createdAt: 'desc' },
+                take: 20
+            });
+
+            // Salvar mensagem do usuário no histórico
+            await prisma.chatHistory.create({
+                data: {
+                    userId,
+                    role: 'user',
+                    content: message
+                }
+            });
+
+            // Construir histórico para contexto (inverter ordem para cronológico)
+            const historyContext = chatHistory.reverse().map(msg =>
+                `${msg.role === 'user' ? 'Usuário' : 'Assistente'}: ${msg.content}`
+            ).join('\n');
+
+            // Criar prompt contextualizado com histórico
             const context = this.buildUserContext(user);
-            const prompt = `${context}\n\nUsuário: ${message}\n\nAnálise a mensagem e retorne um JSON com a ação a ser tomada. Possíveis ações:\n- "add_transaction": adicionar transação\n- "query_balance": consultar saldo\n- "query_status": consultar situação financeira\n- "advice": dar conselho financeiro\n\nFormato de resposta JSON:\n{\n  "action": "tipo_acao",\n  "data": { dados relevantes },\n  "response": "resposta amigável ao usuário"\n}`;
+            const prompt = `Você é um assistente financeiro inteligente chamado FinançasPRO.
+
+${context}
+
+=== HISTÓRICO DA CONVERSA ===
+${historyContext || 'Nenhuma conversa anterior.'}
+================================
+
+Usuário: ${message}
+
+INSTRUÇÕES:
+1. Use o histórico para manter contexto e lembrar de conversas anteriores
+2. Se o usuário perguntar "o que conversamos ontem?" ou similar, use o histórico
+3. Seja amigável e use emojis quando apropriado
+4. Analise a mensagem e retorne um JSON válido
+
+=== DETECÇÃO INTELIGENTE ===
+- Se o usuário mencionar "cartão final XXXX" ou "cartão ....XXXX", extraia os 4 dígitos finais
+- Busque nos cartões cadastrados para vincular à transação
+- Se o cartão não existir, pergunte se deseja cadastrar
+
+=== TIPOS DE PAGAMENTO ===
+- Se mencionar "cartão", "crédito", "parcelado" → paymentType: "cartao"
+- Se mencionar "pix", "transferência", "ted" → paymentType: "pix"  
+- Se mencionar "dinheiro", "espécie", "cash" → paymentType: "dinheiro"
+- Se mencionar "débito" → paymentType: "debito"
+- Se não especificar, pergunte o tipo de pagamento
+
+Possíveis ações:
+- "add_variable_expense": adicionar gasto variável (extrair: description, amount, category, paymentType, cardLastDigits)
+- "add_transaction": adicionar transação (extrair: description, amount, category, type)
+- "query_balance": consultar saldo
+- "query_status": consultar situação financeira
+- "advice": dar conselho financeiro
+- "ask_card_info": pedir informações do cartão para cadastrar
+- "memory": lembrar de conversas anteriores
+
+Formato de resposta JSON:
+{
+  "action": "tipo_acao",
+  "data": { 
+    "description": "descrição",
+    "amount": valor_numerico,
+    "category": "categoria",
+    "paymentType": "tipo",
+    "cardLastDigits": "1234" // se aplicável
+  },
+  "response": "resposta amigável ao usuário"
+}`;
 
             const result = await geminiModel.generateContent(prompt);
             const response = await result.response;
             const text = response.text();
 
-            // Tentar parsear JSON
+            // Extrair resposta
+            let aiResponse: any = { action: 'advice', response: text };
             try {
                 const jsonMatch = text.match(/\{[\s\S]*\}/);
                 if (jsonMatch) {
-                    const aiResponse = JSON.parse(jsonMatch[0]);
-                    return aiResponse;
+                    aiResponse = JSON.parse(jsonMatch[0]);
                 }
             } catch (e) {
-                // Se não conseguir parsear, retornar resposta direta
-                return {
-                    action: 'advice',
-                    response: text
-                };
+                // Se não conseguir parsear, usar texto direto
             }
 
-            return {
-                action: 'advice',
-                response: text
-            };
+            // Salvar resposta do assistente no histórico
+            await prisma.chatHistory.create({
+                data: {
+                    userId,
+                    role: 'assistant',
+                    content: aiResponse.response || text,
+                    metadata: { action: aiResponse.action }
+                }
+            });
+
+            return aiResponse;
         } catch (error: any) {
             console.error('AI Chat Error:', error);
             throw new Error(`Erro ao processar chat: ${error.message}`);
@@ -72,7 +144,6 @@ export class AIService {
      */
     async processReceipt(imageBase64: string): Promise<any> {
         try {
-            // Verificar se a API Gemini está configurada
             if (!geminiVisionModel) {
                 throw new Error('API Gemini não configurada. Configure GEMINI_API_KEY para usar esta funcionalidade.');
             }
@@ -100,11 +171,9 @@ Se não conseguir identificar algum campo, use null.`;
             const response = await result.response;
             const text = response.text();
 
-            // Extrair JSON da resposta
             const jsonMatch = text.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
-                const extractedData = JSON.parse(jsonMatch[0]);
-                return extractedData;
+                return JSON.parse(jsonMatch[0]);
             }
 
             throw new Error('Não foi possível extrair dados do comprovante');
@@ -166,7 +235,7 @@ Se não conseguir identificar algum campo, use null.`;
                 };
             }
 
-            // Calcular proporção de dívidas (apenas se há renda)
+            // Calcular proporção de dívidas
             const debtRatio = totalIncome > 0 ? (totalDebt / totalIncome) * 100 : (totalDebt > 0 ? 100 : 0);
 
             // Determinar cor e status
@@ -175,43 +244,43 @@ Se não conseguir identificar algum campo, use null.`;
             let healthScore = 0;
 
             if (debtRatio > 70) {
-                color = '#8B0000'; // Vermelho escuro
+                color = '#8B0000';
                 status = 'critical';
                 healthScore = 1;
             } else if (debtRatio > 50) {
-                color = '#FF4500'; // Laranja
+                color = '#FF4500';
                 status = 'concerning';
                 healthScore = 2;
             } else if (debtRatio > 30) {
-                color = '#FFD700'; // Amarelo
+                color = '#FFD700';
                 status = 'attention';
                 healthScore = 3;
             } else if (debtRatio > 10) {
-                color = '#90EE90'; // Verde claro
+                color = '#90EE90';
                 status = 'controlled';
                 healthScore = 4;
             } else if (debtRatio > 0) {
-                color = '#228B22'; // Verde forte
+                color = '#228B22';
                 status = 'healthy';
                 healthScore = 5;
             } else {
                 const savingsRatio = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
                 if (savingsRatio > 20) {
-                    color = '#0000CD'; // Azul forte
+                    color = '#0000CD';
                     status = 'excellent';
                     healthScore = 7;
                 } else if (savingsRatio > 10) {
-                    color = '#87CEEB'; // Azul claro
+                    color = '#87CEEB';
                     status = 'saving';
                     healthScore = 6;
                 } else {
-                    color = '#228B22'; // Verde forte
+                    color = '#228B22';
                     status = 'healthy';
                     healthScore = 5;
                 }
             }
 
-            // Gerar sugestões com IA (ou usar padrão se IA não configurada)
+            // Gerar sugestões
             let suggestions: string[] = [];
 
             if (geminiModel) {
