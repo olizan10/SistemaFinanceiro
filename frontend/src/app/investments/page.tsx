@@ -233,8 +233,11 @@ export default function InvestmentsPage() {
 
             {/* Modal */}
             {showModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="glass rounded-2xl p-6 w-full max-w-md mx-4">
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+                    <div
+                        className="glass rounded-2xl p-6 w-full max-w-md mx-auto my-auto max-h-[85vh] overflow-y-auto"
+                        style={{ maxHeight: 'calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 32px)' }}
+                    >
                         <h3 className="text-xl font-bold mb-4">Novo Investimento</h3>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <input
